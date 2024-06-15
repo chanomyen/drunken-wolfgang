@@ -28,6 +28,11 @@ export interface RequestRoomInfo {
     adminPassword: string;
 }
 
+export interface RequestJoin {
+    roomId: string;
+    playerName: string;
+}
+
 export const create = async (requestRoom: RequestRoom):
   Promise<CreateResult | null> => {
   const db = getFirestore();
@@ -59,5 +64,24 @@ export const get = async (roomId: string, adminPassword: string):
   if (room.adminPassword !== adminPassword) {
     throw new Error("Invalid admin password");
   }
+  return room;
+};
+
+export const join = async (requestJoin: RequestJoin):
+  Promise<Room | null> => {
+  const db = getFirestore();
+  const roomRef = db.collection("rooms").doc(requestJoin.roomId);
+  const roomDoc = await roomRef.get();
+  const room = roomDoc.data() as Room;
+  if (room.playerCount === Object.keys(room.players || {}).length) {
+    throw new Error("Room is full");
+  }
+  
+  // get used charactors
+  Object.values(room.players || {}).map((player) => {
+    console.log(Object.values(player));
+    return Object.values(player)
+  });
+  // Add player to room
   return room;
 };
