@@ -23,6 +23,11 @@ export interface CreateResult {
     error?: Error;
 }
 
+export interface RequestRoomInfo {
+    roomId: string;
+    adminPassword: string;
+}
+
 export const create = async (requestRoom: RequestRoom):
   Promise<CreateResult | null> => {
   const db = getFirestore();
@@ -43,4 +48,16 @@ export const create = async (requestRoom: RequestRoom):
   } catch (error) {
     throw error;
   }
+};
+
+export const get = async (roomId: string, adminPassword: string):
+  Promise<Room | null> => {
+  const db = getFirestore();
+  const roomRef = db.collection("rooms").doc(roomId);
+  const roomDoc = await roomRef.get();
+  const room = roomDoc.data() as Room;
+  if (room.adminPassword !== adminPassword) {
+    throw new Error("Invalid admin password");
+  }
+  return room;
 };

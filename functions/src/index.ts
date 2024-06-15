@@ -32,6 +32,18 @@ exports.createRoom = onRequest(async (request, response) => {
   }
 });
 
+exports.getRoom = onRequest(async (request, response) => {
+  const roomId: string = request.query.roomId as string;
+  const adminPassword: string = request.query.adminPassword as string;
+  try {
+    const room = await RoomModel.get(roomId, adminPassword);
+    response.status(200).json(room);
+  } catch (error) {
+    logger.error("Error getting room", error);
+    response.status(500).send(error);
+  }
+});
+
 // export const helloWorld = onRequest((request, response) => {
 //   logger.info("Hello logs!", {structuredData: true});
 //   response.send("Hello from Firebase!");
