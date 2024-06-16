@@ -47,11 +47,11 @@ exports.getRoom = onRequest(async (request, response) => {
 exports.joinRoom = onRequest(async (request, response) => {
   const requestJoin: RoomModel.RequestJoin = request.body;
   try {
-    const room = await RoomModel.join(requestJoin);
-    response.status(200).json(room);
+    const remainingPlayer = await RoomModel.join(requestJoin);
+    response.status(200).json({remainingPlayer});
   } catch (error) {
-    logger.error("Error joining room", error);
     response.status(500).send(error);
+    logger.error("Error joining room", error);
   }
 });
 

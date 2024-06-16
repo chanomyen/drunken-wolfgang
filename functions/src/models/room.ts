@@ -1,13 +1,17 @@
 import {getFirestore} from "firebase-admin/firestore";
 import {generateRoomId} from "./utils";
 
+export interface Player {
+    name: string;
+    character: string;
+}
 export interface Room {
     adminPassword: string;
     characters: string[]; // Assuming an array of character names
     createdAt: number; // Assuming a Firebase Timestamp
     playerCount: number;
-    players?: {[key: string]: string};
-    status?: string;
+    players: Player[];
+    status: string;
     updatedAt: number; // Assuming a Firebase Timestamp
 }
 
@@ -43,6 +47,7 @@ export const create = async (requestRoom: RequestRoom):
     createdAt: Date.now(),
     updatedAt: Date.now(),
     status: "waiting",
+    players: []
   };
   const roomId: string = generateRoomId();
 
@@ -67,21 +72,68 @@ export const get = async (roomId: string, adminPassword: string):
   return room;
 };
 
-export const join = async (requestJoin: RequestJoin):
-  Promise<Room | null> => {
+export const join = async (requestJoin: RequestJoin) => {
   const db = getFirestore();
   const roomRef = db.collection("rooms").doc(requestJoin.roomId);
   const roomDoc = await roomRef.get();
-  const room = roomDoc.data() as Room;
-  if (room.playerCount === Object.keys(room.players || {}).length) {
+  const { playerCount, players } = roomDoc.data() as Room;
+  if (playerCount === players.length) {
     throw new Error("Room is full");
   }
   
-  // get used charactors
-  Object.values(room.players || {}).map((player) => {
-    console.log(Object.values(player));
-    return Object.values(player)
-  });
-  // Add player to room
-  return room;
+  // check duplication player name
+  if (players.some((player) => player.name === requestJoin.playerName)) {
+    throw new Error("Duplicate player name");
+  }
+  
+  const newPlayer: Player = {name: requestJoin.playerName, character: ""};
+  await players.push(newPlayer);
+
+  const remainingPlayer: number = playerCount - players.length;
+  if (remainingPlayer === 0) {
+    await roomRef.update({players, status: "ready", updatedAt: Date.now()});
+  } else {
+    await roomRef.update({players, updatedAt: Date.now()});
+  }
+
+  return remainingPlayer;
 };
+
+// export const assignCharacter = async (roomId: string, playerName: string):
+//   Promise<Room | null> => {
+//   const db = getFirestore();
+//   const roomRef = db.collection("rooms").doc(roomId);
+//   const roomDoc = await roomRef.get();
+//   let room: Room = roomDoc.data() as Room;
+//   const playerIndex = room.players.findIndex((player) => player.name === playerName);
+  
+//   if (room.players.length !== room.playerCount) {
+//     throw Error("Room is not full")
+//   }
+//   // get used charactors
+//   const assignedCharactors = room.players.map((player) => player.character);
+  
+//   // random a charactor to each joined players
+//   room.players.forEach((player) => {
+//     let charactor = "";
+//     do {
+//       const randomIndex = Math.floor(Math.random() * room.characters.length);
+//       charactor = room.characters[randomIndex];
+//     } while (assignedCharactors.includes(charactor));
+//     player.character = charactor;
+//     assignedCharactors.push(charactor);
+//     room.updatedAt = Date.now();
+//     roomRef.update(room);
+//   });
+//   return room;
+// };
+
+// const randomCharactor = (room: Room): string => {
+//   const assignedCharactors = room.players.map((player) => player.character);
+//   let charactor = "";
+//   do {
+//     const randomIndex = Math.floor(Math.random() * room.characters.length);
+//     charactor = room.characters[randomIndex];
+//   } while (assignedCharactors.includes(charactor));
+//   return charactor;
+// };
