@@ -47,17 +47,13 @@ export const create = async (requestRoom: RequestRoom):
     createdAt: Date.now(),
     updatedAt: Date.now(),
     status: "waiting",
-    players: []
+    players: [],
   };
   const roomId: string = generateRoomId();
 
-  try {
-    const roomRef = await db.collection("rooms").doc(roomId);
-    await roomRef.set(roomData);
-    return {success: true, roomId};
-  } catch (error) {
-    throw error;
-  }
+  const roomRef = await db.collection("rooms").doc(roomId);
+  await roomRef.set(roomData);
+  return {success: true, roomId};
 };
 
 export const get = async (roomId: string, adminPassword: string):
@@ -76,16 +72,16 @@ export const join = async (requestJoin: RequestJoin) => {
   const db = getFirestore();
   const roomRef = db.collection("rooms").doc(requestJoin.roomId);
   const roomDoc = await roomRef.get();
-  const { playerCount, players } = roomDoc.data() as Room;
+  const {playerCount, players} = roomDoc.data() as Room;
   if (playerCount === players.length) {
     throw new Error("Room is full");
   }
-  
+
   // check duplication player name
   if (players.some((player) => player.name === requestJoin.playerName)) {
     throw new Error("Duplicate player name");
   }
-  
+
   const newPlayer: Player = {name: requestJoin.playerName, character: ""};
   await players.push(newPlayer);
 
@@ -111,37 +107,40 @@ export const assignCharacter = async (roomId: string, adminPassword: string):
   }
 
   if (room.players.length !== room.playerCount) {
-    throw Error("Room is not full")
+    throw Error("Room is not full");
   }
 
   if (room.status !== "ready") {
-    throw Error("Room is not ready")
+    throw Error("Room is not ready");
   }
   // get used charactors
   // const assignedCharactors: string[] = [];
 
   const quota = characterCondition(room.characters);
-  
+
   // random character
   room.players = await Promise.all(room.players.map(async (player) => {
     let randomCharacter;
     do {
-      randomCharacter = room.characters[Math.floor(Math.random() * room.characters.length)];
+      randomCharacter = room.characters[
+        Math.floor(Math.random() * room.characters.length)];
     } while (quota[randomCharacter] <= 0);
-  
+
     quota[randomCharacter]--;
     player.character = randomCharacter;
     return player;
   }));
-  
+
   room.updatedAt = Date.now();
   room.status = "started";
-  roomRef.update({players: room.players, status: room.status, updatedAt: Date.now()});
+  roomRef.update({
+    players: room.players, status: room.status, updatedAt: Date.now(),
+  });
   return room;
 };
 
 export const getCharacter = async (roomId: string, playerName: string):
-  Promise<Object | null> => {
+  Promise<Player | null> => {
   const db = getFirestore();
   const roomRef = db.collection("rooms").doc(roomId);
   const roomDoc = await roomRef.get();
@@ -155,7 +154,8 @@ export const getCharacter = async (roomId: string, playerName: string):
   return player;
 };
 
-const characterCondition = (characters: string[]): { [key: string]: number } => {
+const characterCondition = (characters: string[]): {
+  [key: string]: number } => {
   const characterCount: { [key: string]: number } = {};
 
   characters.forEach((character) => {
@@ -167,14 +167,4 @@ const characterCondition = (characters: string[]): { [key: string]: number } => 
   });
 
   return characterCount;
-}
-
-// const isValidCharacter = async (
-//   newCharacter: string, existingCharacters: string[], condition: string[]) => {
-
-//   if (!existingCharacters.includes(newCharacter)) {
-//     return true;
-//   }
-  
-//   return false;
-//  }
+};

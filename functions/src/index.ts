@@ -27,7 +27,7 @@ exports.createRoom = onRequest(async (request, response) => {
     const roomData = await RoomModel.create(requestRoom);
     response.status(200).json(roomData);
   } catch (error) {
-    logger.error("Error creating room", error);
+    logger.error("Error creating room ", error);
     response.status(500).send(error);
   }
 });
@@ -39,7 +39,7 @@ exports.getRoom = onRequest(async (request, response) => {
     const room = await RoomModel.get(roomId, adminPassword);
     response.status(200).json(room);
   } catch (error) {
-    logger.error("Error getting room", error);
+    logger.error("Error getting room ", error);
     response.status(500).send(error);
   }
 });
@@ -51,7 +51,7 @@ exports.joinRoom = onRequest(async (request, response) => {
     response.status(200).json({remainingPlayer});
   } catch (error) {
     response.status(500).send(error);
-    logger.error("Error joining room", error);
+    logger.error("Error joining room ", error);
   }
 });
 
@@ -62,7 +62,7 @@ exports.start = onRequest(async (request, response) => {
     const room = await RoomModel.assignCharacter(roomId, adminPassword);
     response.status(200).json(room);
   } catch (error) {
-    logger.error("Error starting room", error);
+    logger.error("Error starting room ", error);
     response.status(500).send(error);
   }
 });
