@@ -99,41 +99,67 @@ export const join = async (requestJoin: RequestJoin) => {
   return remainingPlayer;
 };
 
-// export const assignCharacter = async (roomId: string, playerName: string):
-//   Promise<Room | null> => {
-//   const db = getFirestore();
-//   const roomRef = db.collection("rooms").doc(roomId);
-//   const roomDoc = await roomRef.get();
-//   let room: Room = roomDoc.data() as Room;
-//   const playerIndex = room.players.findIndex((player) => player.name === playerName);
-  
-//   if (room.players.length !== room.playerCount) {
-//     throw Error("Room is not full")
-//   }
-//   // get used charactors
-//   const assignedCharactors = room.players.map((player) => player.character);
-  
-//   // random a charactor to each joined players
-//   room.players.forEach((player) => {
-//     let charactor = "";
-//     do {
-//       const randomIndex = Math.floor(Math.random() * room.characters.length);
-//       charactor = room.characters[randomIndex];
-//     } while (assignedCharactors.includes(charactor));
-//     player.character = charactor;
-//     assignedCharactors.push(charactor);
-//     room.updatedAt = Date.now();
-//     roomRef.update(room);
-//   });
-//   return room;
-// };
+export const assignCharacter = async (roomId: string, adminPassword: string):
+  Promise<Room | null> => {
+  const db = getFirestore();
+  const roomRef = db.collection("rooms").doc(roomId);
+  const roomDoc = await roomRef.get();
+  const room: Room = roomDoc.data() as Room;
 
-// const randomCharactor = (room: Room): string => {
-//   const assignedCharactors = room.players.map((player) => player.character);
-//   let charactor = "";
-//   do {
-//     const randomIndex = Math.floor(Math.random() * room.characters.length);
-//     charactor = room.characters[randomIndex];
-//   } while (assignedCharactors.includes(charactor));
-//   return charactor;
-// };
+  if (room.adminPassword !== adminPassword) {
+    throw new Error("Invalid admin password");
+  }
+
+  if (room.players.length !== room.playerCount) {
+    throw Error("Room is not full")
+  }
+
+  if (room.status !== "ready") {
+    throw Error("Room is not ready")
+  }
+  // get used charactors
+  // const assignedCharactors: string[] = [];
+
+  const quota = characterCondition(room.characters);
+  
+  // random character
+  room.players = await Promise.all(room.players.map(async (player) => {
+    let randomCharacter;
+    do {
+      randomCharacter = room.characters[Math.floor(Math.random() * room.characters.length)];
+    } while (quota[randomCharacter] <= 0);
+  
+    quota[randomCharacter]--;
+    player.character = randomCharacter;
+    return player;
+  }));
+  
+  room.updatedAt = Date.now();
+  room.status = "started";
+  roomRef.update({players: room.players, status: room.status, updatedAt: Date.now()});
+  return room;
+};
+
+const characterCondition = (characters: string[]): { [key: string]: number } => {
+  const characterCount: { [key: string]: number } = {};
+
+  characters.forEach((character) => {
+    if (characterCount[character]) {
+      characterCount[character]++;
+    } else {
+      characterCount[character] = 1;
+    }
+  });
+
+  return characterCount;
+}
+
+// const isValidCharacter = async (
+//   newCharacter: string, existingCharacters: string[], condition: string[]) => {
+
+//   if (!existingCharacters.includes(newCharacter)) {
+//     return true;
+//   }
+  
+//   return false;
+//  }
