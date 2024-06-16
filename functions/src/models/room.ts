@@ -140,6 +140,21 @@ export const assignCharacter = async (roomId: string, adminPassword: string):
   return room;
 };
 
+export const getCharacter = async (roomId: string, playerName: string):
+  Promise<Object | null> => {
+  const db = getFirestore();
+  const roomRef = db.collection("rooms").doc(roomId);
+  const roomDoc = await roomRef.get();
+  const {players} = roomDoc.data() as Room;
+
+  const player = players.find((player) => player.name === playerName);
+  if (!player || !player.character) {
+    return null;
+  }
+
+  return player;
+};
+
 const characterCondition = (characters: string[]): { [key: string]: number } => {
   const characterCount: { [key: string]: number } = {};
 

@@ -67,6 +67,18 @@ exports.start = onRequest(async (request, response) => {
   }
 });
 
+exports.getCharacter = onRequest(async (request, response) => {
+  const roomId: string = request.query.roomId as string;
+  const playerName: string = request.query.playerName as string;
+  try {
+    const character = await RoomModel.getCharacter(roomId, playerName);
+    response.status(200).json(character);
+  } catch (error) {
+    logger.error("Error getting character", error);
+    response.status(500).send(error);
+  }
+});
+
 // export const helloWorld = onRequest((request, response) => {
 //   logger.info("Hello logs!", {structuredData: true});
 //   response.send("Hello from Firebase!");
